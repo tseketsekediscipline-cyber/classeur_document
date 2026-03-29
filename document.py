@@ -31,8 +31,10 @@ config = {
     ".jpeg": "Images",
     ".png": "Images",
     ".gif": "Images",
+    ".avif":"images",
     ".svg": "Images_Vectorielles",
     ".bmp": "Images",
+    
 
     # --- VIDÉOS ET AUDIO (POUR LES ENREGISTREMENTS) ---
     ".mp4": "Videos",
@@ -220,7 +222,32 @@ def lancer_gui():
     liste_visuelle.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     scroll.config(command=liste_visuelle.yview)
 
-    # --- FONCTIONS (LES MÊMES QUE PRÉCÉDEMMENT) ---
+ # --- ÉTAPE A : On crée la fonction qui ouvre le fichier ---
+    def ouvrir_fichier_au_double_clic(event):
+        try:
+            selection = liste_visuelle.get(liste_visuelle.curselection())
+            parties = selection.split(" ⮕ ")
+            nom_f = parties[0].strip()
+            dossier_d = parties[1].strip()
+            
+            # On construit le chemin et on le transforme en chemin "absolu" (le vrai nom complet)
+            chemin_relatif = os.path.join(dossier_a_trier, dossier_d, nom_f)
+            chemin_absolu = os.path.abspath(chemin_relatif)
+            
+            # On vérifie si le fichier existe vraiment avant d'essayer
+            if os.path.exists(chemin_absolu):
+                print(f"Ouverture de : {chemin_absolu}")
+                os.system(f'open "{chemin_absolu}"')
+            else:
+                print(f"Erreur : Le fichier n'existe pas à l'adresse {chemin_absolu}")
+        except Exception as e:
+            print(f"Erreur : {e}")
+
+    # --- ÉTAPE B : On connecte la souris à la fonction ---
+    # Cette ligne est CRUCIALE : elle fait le lien entre ton clic et l'ouverture
+    liste_visuelle.bind('<Double-1>', ouvrir_fichier_au_double_clic)
+
+    # --- ÉTAPE C : Ta fonction rafraichir (on la garde mais on s'assure du format) ---
     def rafraichir(filtre=None):
         liste_visuelle.delete(0, tk.END)
         connexion = sqlite3.connect("gestion_fichiers.db")
@@ -230,7 +257,8 @@ def lancer_gui():
         else:
             curseur.execute("SELECT nom, destination FROM fichiers")
         for f in curseur.fetchall():
-            liste_visuelle.insert(tk.END, f"  {f[0].ljust(40)} ⮕  {f[1]}")
+            # IMPORTANT : On utilise le signe ⮕ pour que l'Étape A puisse le couper
+            liste_visuelle.insert(tk.END, f"{f[0].ljust(40)} ⮕ {f[1]}")
         connexion.close()
 
     def action_ranger():
@@ -253,7 +281,7 @@ def lancer_gui():
 
     rafraichir()
     fenetre.mainloop()
- 
+
 
 if __name__ == "__main__":
     initialiser_bdd() # On prépare toujours la BDD en premier

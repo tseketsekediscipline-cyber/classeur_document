@@ -3,6 +3,8 @@ import shutil
 import sqlite3
 import tkinter as tk
 from tkinter import messagebox 
+import json
+import matplotlib.pyplot as plt
 
 
 # 1. On définit le dossier à ranger (met le chemin d'un dossier de test ici)
@@ -13,48 +15,17 @@ if not os.path.exists(dossier_a_trier):
     os.makedirs(dossier_a_trier)
     print(f"Dossier {dossier_a_trier} créé. Mets des fichiers dedans !")
 
-# 3. Dictionnaire pour associer les extensions aux dossiers
-config = {
-    # --- DOCUMENTS DE COURS ---
-    ".pdf": "Documents_PDF",
-    ".docx": "Documents_Word",
-    ".doc": "Documents_Word",
-    ".txt": "Documents_Texte",
-    ".pptx": "Presentations",
-    ".ppt": "Presentations",
-    ".xlsx": "Tableaux_Excel",
-    ".xls": "Tableaux_Excel",
-    ".csv": "Donnees_Recherche",
+def charger_config():
+    nom_fichier = "config.json"
+    if os.path.exists(nom_fichier):
+        with open(nom_fichier, "r", encoding="utf-8") as f:
+            return json.load(f)
+    else:
+        # Si le fichier est perdu, on garde une petite base pour que ça marche
+        return {".pdf": "Documents_PDF", ".txt": "Documents_Texte"}
 
-    # --- IMAGES ET GRAPHES ---
-    ".jpg": "Images",
-    ".jpeg": "Images",
-    ".png": "Images",
-    ".gif": "Images",
-    ".avif":"images",
-    ".svg": "Images_Vectorielles",
-    ".bmp": "Images",
-    
-
-    # --- VIDÉOS ET AUDIO (POUR LES ENREGISTREMENTS) ---
-    ".mp4": "Videos",
-    ".mov": "Videos",
-    ".avi": "Videos",
-    ".mp3": "Audio_Enregistrements",
-    ".wav": "Audio_Enregistrements",
-
-    # --- ARCHIVES (RENDUS DE PROJET) ---
-    ".zip": "Archives",
-    ".rar": "Archives",
-    ".7z": "Archives",
-    ".tar.gz": "Archives",
-
-    # --- CODE (SI TU FAIS DE L'INFO) ---
-    ".py": "Code_Python",
-    ".html": "Code_Web",
-    ".css": "Code_Web",
-    ".js": "Code_Web"
-}
+# On charge la config au démarrage
+config = charger_config()
 
 def initialiser_bdd():
     # Crée le fichier 'gestion_fichiers.db' s'il n'existe pas
@@ -186,6 +157,36 @@ def afficher_fichiers():
             
     connexion.close()
 
+def afficher_stats():
+    # 1. Connexion à la base pour récupérer les données
+    connexion = sqlite3.connect("gestion_fichiers.db")
+    curseur = connexion.cursor()
+    
+    # On compte combien de fichiers il y a par dossier (destination)
+    curseur.execute("SELECT destination, COUNT(*) FROM fichiers GROUP BY destination")
+    resultats = curseur.fetchall()
+    connexion.close()
+
+    if not resultats:
+        messagebox.showwarning("Stats", "La base de données est vide !")
+        return
+
+    # 2. Préparation des données pour le graphique
+    noms_dossiers = [ligne[0] for ligne in resultats]
+    nombres_fichiers = [ligne[1] for ligne in resultats]
+
+    # 3. Création du graphique avec Matplotlib
+    plt.figure(figsize=(10, 6))
+    plt.bar(noms_dossiers, nombres_fichiers, color='#89b4fa') # Une jolie couleur bleue
+    plt.title("Répartition de tes documents par catégorie", fontsize=14)
+    plt.xlabel("Dossiers de destination")
+    plt.ylabel("Nombre de fichiers")
+    plt.xticks(rotation=45) # Incliner les noms pour qu'ils soient lisibles
+    plt.tight_layout()
+    
+    # Affiche la fenêtre avec le graphique
+    plt.show()
+
 
 def lancer_gui():
     fenetre = tk.Tk()
@@ -230,7 +231,7 @@ def lancer_gui():
             nom_f = parties[0].strip()
             dossier_d = parties[1].strip()
             
-            # On construit le chemin et on le transforme en chemin "absolu" (le vrai nom complet)
+            # On construit le chemin et on le transforme en chemin "absolu" 
             chemin_relatif = os.path.join(dossier_a_trier, dossier_d, nom_f)
             chemin_absolu = os.path.abspath(chemin_relatif)
             
@@ -243,7 +244,7 @@ def lancer_gui():
         except Exception as e:
             print(f"Erreur : {e}")
 
-    # --- ÉTAPE B : On connecte la souris à la fonction ---
+
     # Cette ligne est CRUCIALE : elle fait le lien entre ton clic et l'ouverture
     liste_visuelle.bind('<Double-1>', ouvrir_fichier_au_double_clic)
 
@@ -273,10 +274,14 @@ def lancer_gui():
     tk.Button(fenetre, text=" RANGER LES DOCUMENTS", command=action_ranger, 
               **style_btn_primary, width=30, cursor="hand2").pack(pady=10)
 
-    tk.Button(fenetre, text=" Synchroniser la base", command=lambda: [nettoyer_bdd(), rafraichir()], 
+    tk.Button(fenetre, text=" SYNCHRONISER LA BASE", command=lambda: [nettoyer_bdd(), rafraichir()], 
               bg="#fab387", relief="flat", width=25, cursor="hand2").pack(pady=5)
-
-    tk.Button(fenetre, text="Quitter", command=fenetre.quit, bg="#1e1e2e", fg="#f38ba8", 
+    
+    tk.Button(fenetre, text=" VOIR MON ANALYSE BUSINESS", command=afficher_stats, 
+              bg="#a6e3a1", fg="#1e1e2e", font=("Segoe UI", 11, "bold"), 
+              width=30, cursor="hand2").pack(pady=10)
+    
+    tk.Button(fenetre, text="QUITTER", command=fenetre.quit, bg="#1e1e2e", fg="#f38ba8", 
               borderwidth=0, cursor="hand2").pack(pady=20)
 
     rafraichir()

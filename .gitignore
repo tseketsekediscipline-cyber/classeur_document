@@ -1,5 +1,11 @@
-dist/
-build/
+# Ignorer la base de données locale
+*.db
+
+# Ignorer les dossiers de compilation (Mac/Windows)
 __pycache__/
+build/
+dist/
+.DS_Store
+
+# Ignorer les fichiers de spec PyInstaller
 *.spec
-.venv/

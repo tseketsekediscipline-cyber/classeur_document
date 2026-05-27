@@ -1,5 +1,6 @@
 # Ignorer la base de données locale
 *.db
+*.json
 
 # Ignorer les dossiers de compilation (Mac/Windows)
 __pycache__/

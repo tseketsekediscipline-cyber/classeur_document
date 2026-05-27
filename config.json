@@ -27,5 +27,6 @@
   ".py": "Code_Python",
   ".html": "Code_Web",
   ".css": "Code_Web",
-  ".js": "Code_Web"
+  ".js": "Code_Web",
+  ".heic": "images"
 }
